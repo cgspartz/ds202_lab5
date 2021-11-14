@@ -9,3 +9,29 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+person <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+library(ggplot2)
+library(tidyverse)
+```
+
+## 1. Fatal Accidents
+```{r Fatal-Accidents}
+fatalities <- person %>% filter(INJ_SEV==4)
+head(fatalities,5)
+```
+
+## 2. Most Dangerous Manufacturer
+```{r vehicle}
+dangerVehicles <- fatalities %>% group_by(MAKE) %>% summarise(fatalities = n())
+dangerVehicles
+```
+
+## 3. Most Dangeour Manufacturer per State
+```{r map-danger}
+
+```
+
+
+
