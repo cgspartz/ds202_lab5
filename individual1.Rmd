@@ -52,7 +52,7 @@ The most dangerous vehicle in this scenario is the make involved in the most fat
 
 ## 4. Joining Person and Accidents
 ```{r join-person}
-pacc <- person %>% inner_join(acc,by=c("STATE","DAY","MONTH","HOUR","MINUTE"))
+pacc <- person %>% inner_join(acc,by=c("STATE","COUNTY","DAY","MONTH","HOUR","MINUTE"))
 ```
 
 ## 5. Accidents by DAY, HOUR, SEX
@@ -77,9 +77,22 @@ Men to get into more than double the amount of accidents that women do. This cou
 
 ## 6. Map of Deaths on a County level
 ```{r}
-
+GLC <- GLC %>% rename(COUNTY="County Code")
+GLC <- GLC %>% rename(CN="County Name")
+GLC$COUNTY <- as.integer(GLC$COUNTY)
+cf <- fatalities %>% select(COUNTY) %>% drop_na(COUNTY)
+county <- GLC %>% group_by(COUNTY,CN) %>% distinct(COUNTY,CN)
+cfc <- county %>% inner_join(cf) %>% summarise(deaths=n())
 ```
-
+```{r}
+counties <- map_data("county")
+counties <- cfc %>% mutate(subregion=tolower(CN)) %>% inner_join(counties, by="subregion")
+counties %>% ggplot(aes(x = long, y = lat)) + 
+  geom_polygon(aes(group = group,fill=deaths)) + 
+  coord_map()+scale_fill_continuous(low="thistle2", high="darkred", 
+                       guide="colorbar",na.value="white")
+```
+It looks as if most of the fatal accidents tend to happen in large urban areas, like Chicago, New York or Los Angeles. Fatal accidents seem to happen less in the midwest, but as you go further towards the west and the northeast the accidents go up.
 
 
 
