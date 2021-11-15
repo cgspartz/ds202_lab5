@@ -14,6 +14,7 @@ acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master
 person <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
 library(ggplot2)
 library(tidyverse)
+library(lubridate)
 ```
 
 ## 1. Fatal Accidents
@@ -30,8 +31,55 @@ dangerVehicles
 
 ## 3. Most Dangeour Manufacturer per State
 ```{r map-danger}
+GLC <- readxl::read_xlsx("GLC.xlsx")
+GLC <- GLC %>% rename(STATE="State Code")
+GLC <- GLC %>% rename(NAME="State Name")
+GLC$STATE <- as.integer(GLC$STATE)
+sf <- fatalities %>% select(STATE,MAKE) %>% drop_na(MAKE)
+state <- GLC %>% group_by(STATE,NAME) %>% distinct(STATE,NAME)
+sfs <- state %>% inner_join(sf)
+smf <- sfs %>% group_by(NAME,MAKE) %>% summarise(deaths=n()) %>% 
+  top_n(1, deaths)
+states <- map_data("state")
+snames <- data.frame(region=tolower(state.name), long=state.center$x, lat=state.center$y)
+smf <- smf %>% mutate(region = tolower(NAME)) %>% inner_join(snames)
+states %>% ggplot(aes(x = long, y = lat)) + 
+  geom_path(aes(group = group)) + 
+  coord_map() +
+  geom_text(data=smf, aes(long, lat, label=MAKE))
+```
+The most dangerous vehicle in this scenario is the make involved in the most fatal accidents, and it looks like the most dangerous make in the US is Chevrolet, who has the most fatal accidents in the majority of US states.
+
+## 4. Joining Person and Accidents
+```{r join-person}
+pacc <- person %>% inner_join(acc,by=c("STATE","DAY","MONTH","HOUR","MINUTE"))
+```
+
+## 5. Accidents by DAY, HOUR, SEX
+```{r day}
+pacc %>% group_by(DAY_WEEK) %>% summarise(num_accidents=n()) %>% mutate(day_of_week  = wday(DAY_WEEK, label = TRUE)) %>% 
+  ggplot(aes(x=day_of_week,y=num_accidents)) + geom_bar(stat = "Identity")
+```
+Most accidents tend to happen on the weekends, which makes sense since that is the time when people are most likely to go out drinking, and when people drink and drive they tend to get into more accidents.
+
+```{r hour}
+pacc %>% group_by(HOUR) %>% filter(HOUR<25) %>% summarise(num_accidents=n()) %>% 
+  ggplot(aes(x=HOUR,y=num_accidents)) + geom_bar(stat = "Identity")
+```
+Accidents tend to happen more in the afternoon and evening, specifically in the period of 3pm until 9pm, which encompasses the entirety of the normal rush hour, the times when a lot of people are on the road since they are trying to get home from work. This time period also coincides with the times when people go out to eat or go to the bar, and when they finish eating and drinking they try to drive while drunk, resulting in an accident.
+
+```{r sex}
+paccF <- pacc %>%  filter(SEX<3)
+paccF %>% mutate(sn = ifelse(paccF$SEX == 1, "male", "female")) %>% group_by(sn)  %>% summarise(num_accidents=n()) %>% 
+  ggplot(aes(x=sn,y=num_accidents)) + geom_bar(stat = "Identity")
+```
+Men to get into more than double the amount of accidents that women do. This could be for a variety of reasons, like women being safer drivers on average, or women not driving drunk as much.
+
+## 6. Map of Deaths on a County level
+```{r}
 
 ```
+
 
 
 
